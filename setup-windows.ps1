@@ -21,8 +21,9 @@ Install-IfMissing "wez.wezterm"       "wezterm"
 Install-IfMissing "Neovim.Neovim"     "nvim"
 Install-IfMissing "GitHub.cli"        "gh"
 Install-IfMissing "Git.Git"           "git"
-# Nerd Font for icons (JetBrainsMono Nerd Font)
-Install-IfMissing "DEVCOM.JetBrainsMonoNerdFont" "wezterm"  # font — skip check, always offer
+# Nerd Font for icons (JetBrainsMono Nerd Font) — no CLI to check, always attempt
+Write-Host "Installing JetBrainsMono Nerd Font (skipped if already present by winget) ..."
+winget install --id DEVCOM.JetBrainsMonoNerdFont --silent --accept-source-agreements --accept-package-agreements 2>$null; $true
 
 # Refresh PATH so new installs are visible
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
