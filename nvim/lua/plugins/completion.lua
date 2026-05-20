@@ -5,7 +5,11 @@ return {
     opts = function(_, opts)
       local cmp = require("cmp")
       opts.mapping = vim.tbl_extend("force", opts.mapping, {
-        ["<CR>"]  = cmp.mapping.confirm({ select = false }), -- only confirms if explicitly selected; does NOT auto-select
+        ["<CR>"] = cmp.mapping(function(fallback)
+          -- Always dismiss popup and insert a newline — never accept on Enter
+          if cmp.visible() then cmp.close() end
+          fallback()
+        end, { "i" }),
         ["<Tab>"] = cmp.mapping(function(fallback)
           if cmp.visible() then
             cmp.confirm({ select = true })
