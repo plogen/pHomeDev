@@ -1,6 +1,10 @@
 local wezterm = require("wezterm")
 local config = wezterm.config_builder()
 
+-- ─── Shell ───────────────────────────────────────────────────────────────────
+-- Use PowerShell as default shell (enables cd across drives, better scripting)
+config.default_prog = { "pwsh.exe", "-NoLogo" }
+
 -- ─── Appearance ──────────────────────────────────────────────────────────────
 config.color_scheme = "Catppuccin Mocha"
 config.font = wezterm.font("JetBrains Mono", { weight = "Regular" })
