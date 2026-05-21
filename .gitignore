@@ -1,0 +1,2 @@
+# LazyVim local state (tracks dismissed news dialogs, not config)
+nvim/lazyvim.json

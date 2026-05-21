@@ -7,23 +7,47 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $REPO = $PSScriptRoot
 
-function Install-IfMissing($id, $name) {
+# ── Scoop (user-scope package manager, no elevation needed) ──────────────────
+if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+    Write-Host "Installing Scoop ..."
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","User") + ";" + $env:PATH
+} else {
+    Write-Host "Scoop already installed, skipping."
+}
+
+function Install-Scoop($package, $name, $bucket = $null) {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        Write-Host "Installing $id ..."
-        winget install --id $id --silent --accept-source-agreements --accept-package-agreements
+        if ($bucket) { scoop bucket add $bucket 2>$null }
+        Write-Host "Installing $package (scoop) ..."
+        scoop install $package
+    } else {
+        Write-Host "$name already installed, skipping."
+    }
+}
+
+function Install-Winget($id, $name) {
+    if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
+        Write-Host "Installing $id (winget) ..."
+        winget install --id $id --scope user --silent --accept-source-agreements --accept-package-agreements
     } else {
         Write-Host "$name already installed, skipping."
     }
 }
 
 # ── Tools ────────────────────────────────────────────────────────────────────
-Install-IfMissing "wez.wezterm"       "wezterm"
-Install-IfMissing "Neovim.Neovim"     "nvim"
-Install-IfMissing "GitHub.cli"        "gh"
-Install-IfMissing "Git.Git"           "git"
-# Nerd Font for icons (JetBrainsMono Nerd Font) — no CLI to check, always attempt
-Write-Host "Installing JetBrainsMono Nerd Font (skipped if already present by winget) ..."
-winget install --id DEVCOM.JetBrainsMonoNerdFont --silent --accept-source-agreements --accept-package-agreements 2>$null; $true
+# wezterm and neovim only have machine-scope winget installers; use Scoop instead
+Install-Scoop "wezterm" "wezterm" "extras"
+Install-Scoop "neovim"  "nvim"
+Install-Scoop "mingw"   "gcc"     # C compiler required by Neovim treesitter/LSP
+Install-Winget "GitHub.cli" "gh"
+Install-Winget "Git.Git"    "git"
+
+# Nerd Font via Scoop nerd-fonts bucket (user-scoped, no elevation)
+Write-Host "Installing JetBrainsMono Nerd Font (scoop) ..."
+scoop bucket add nerd-fonts 2>$null
+scoop install nerd-fonts/JetBrainsMono-NF 2>$null; $true
 
 # Refresh PATH so new installs are visible
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
