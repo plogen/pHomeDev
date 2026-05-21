@@ -57,11 +57,11 @@ $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";"
 $weztermCfg = "$env:USERPROFILE\.wezterm.lua"
 $weztermSrc = Join-Path $REPO "wezterm\wezterm.lua"
 if (Test-Path $weztermCfg) {
-    Write-Host "Backing up existing WezTerm config to $weztermCfg.bak"
-    Copy-Item $weztermCfg "$weztermCfg.bak" -Force
+    Remove-Item $weztermCfg -Force
 }
-Copy-Item $weztermSrc $weztermCfg -Force
-Write-Host "WezTerm config -> $weztermCfg"
+# Hard link (no admin required); edits in the repo are reflected immediately
+New-Item -ItemType HardLink -Path $weztermCfg -Target $weztermSrc | Out-Null
+Write-Host "WezTerm config -> $weztermCfg (hard link -> $weztermSrc)"
 
 # ── Neovim config ─────────────────────────────────────────────────────────────
 $nvimCfgDir = "$env:LOCALAPPDATA\nvim"
