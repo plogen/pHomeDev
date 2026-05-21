@@ -47,6 +47,7 @@ config.keys = {
   { key = "n", mods = "LEADER",       action = wezterm.action.ActivateTabRelative(1) },
   { key = "p", mods = "LEADER",       action = wezterm.action.ActivateTabRelative(-1) },
   { key = "w", mods = "LEADER",       action = wezterm.action.ShowTabNavigator },
+  { key = "q", mods = "LEADER",       action = wezterm.action.CloseCurrentTab({ confirm = false }) },
 
   -- ── Copy / Paste ──
   { key = "c", mods = "CTRL|SHIFT",   action = wezterm.action.CopyTo("Clipboard") },
