@@ -15,4 +15,20 @@ return {
       link = { enabled = true },
     },
   },
+
+  -- Paste images from clipboard: saves file and inserts markdown link (<leader>mp)
+  {
+    "HakonHarnes/img-clip.nvim",
+    event = "BufEnter",
+    opts = {
+      default = {
+        dir_path = "assets",
+        file_name = "%Y-%m-%d-%H-%M-%S",
+        use_absolute_path = false,
+      },
+    },
+    keys = {
+      { "<leader>mp", "<cmd>PasteImage<cr>", desc = "Paste image from clipboard" },
+    },
+  },
 }
