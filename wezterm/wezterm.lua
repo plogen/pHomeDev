@@ -20,6 +20,35 @@ config.window_padding = { left = 8, right = 8, top = 6, bottom = 6 }
 config.initial_cols = 220
 config.initial_rows = 50
 
+-- ─── Smart pane navigation ───────────────────────────────────────────────────
+-- CTRL+hjkl navigates WezTerm panes, but forwards the key to Neovim when it
+-- is the active process so that Neovim can handle its own splits first.
+-- Neovim is configured to fall back to `wezterm cli` when it is at an edge,
+-- completing the round-trip without any separate leader sequence.
+
+local function is_vim(pane)
+  local proc = pane:get_foreground_process_info()
+  if not proc then return false end
+  return proc.name:lower():match("n?vim") ~= nil
+end
+
+local nav_dirs = { h = "Left", j = "Down", k = "Up", l = "Right" }
+
+local function smart_nav(key)
+  return {
+    key = key,
+    mods = "CTRL",
+    action = wezterm.action_callback(function(win, pane)
+      if is_vim(pane) then
+        -- Let Neovim handle it; Neovim will call back via `wezterm cli` if at an edge
+        win:perform_action({ SendKey = { key = key, mods = "CTRL" } }, pane)
+      else
+        win:perform_action({ ActivatePaneDirection = nav_dirs[key] }, pane)
+      end
+    end),
+  }
+end
+
 -- ─── Keys ────────────────────────────────────────────────────────────────────
 -- Leader key: CTRL+A (like tmux)
 config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1500 }
@@ -30,11 +59,11 @@ config.keys = {
   { key = "-", mods = "LEADER",       action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }) },
   { key = "x", mods = "LEADER",       action = wezterm.action.CloseCurrentPane({ confirm = false }) },
 
-  -- ── Pane navigation (LEADER + hjkl) ──
-  { key = "h", mods = "LEADER",       action = wezterm.action.ActivatePaneDirection("Left") },
-  { key = "j", mods = "LEADER",       action = wezterm.action.ActivatePaneDirection("Down") },
-  { key = "k", mods = "LEADER",       action = wezterm.action.ActivatePaneDirection("Up") },
-  { key = "l", mods = "LEADER",       action = wezterm.action.ActivatePaneDirection("Right") },
+  -- ── Pane navigation — CTRL+hjkl (seamless with Neovim splits) ──
+  smart_nav("h"),
+  smart_nav("j"),
+  smart_nav("k"),
+  smart_nav("l"),
 
   -- ── Pane resize (LEADER + arrow keys) ──
   { key = "LeftArrow",  mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Left", 5 }) },
