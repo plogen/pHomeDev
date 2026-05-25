@@ -1,6 +1,11 @@
 local wezterm = require("wezterm")
 local config = wezterm.config_builder()
 
+-- ─── Plugin: Command Palette ──────────────────────────────────────────────────
+-- LEADER+Space  → fuzzy-searchable cheatsheet of your own keybindings
+-- CTRL+SHIFT+P  → WezTerm built-in action launcher (frecency-ranked)
+local cmdpicker = wezterm.plugin.require("https://github.com/abidibo/wezterm-cmdpicker")
+
 -- ─── Shell ───────────────────────────────────────────────────────────────────
 -- Use PowerShell as default shell (enables cd across drives, better scripting)
 config.default_prog = { "pwsh.exe", "-NoLogo" }
@@ -34,59 +39,59 @@ end
 
 local nav_dirs = { h = "Left", j = "Down", k = "Up", l = "Right" }
 
-local function smart_nav(key)
-  return {
-    key = key,
-    mods = "CTRL",
-    action = wezterm.action_callback(function(win, pane)
-      if is_vim(pane) then
-        -- Let Neovim handle it; Neovim will call back via `wezterm cli` if at an edge
-        win:perform_action({ SendKey = { key = key, mods = "CTRL" } }, pane)
-      else
-        win:perform_action({ ActivatePaneDirection = nav_dirs[key] }, pane)
-      end
-    end),
-  }
+local function smart_nav_action(key)
+  return wezterm.action_callback(function(win, pane)
+    if is_vim(pane) then
+      -- Let Neovim handle it; Neovim will call back via `wezterm cli` if at an edge
+      win:perform_action({ SendKey = { key = key, mods = "CTRL" } }, pane)
+    else
+      win:perform_action({ ActivatePaneDirection = nav_dirs[key] }, pane)
+    end
+  end)
 end
 
 -- ─── Keys ────────────────────────────────────────────────────────────────────
 -- Leader key: CTRL+A (like tmux)
 config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1500 }
 
-config.keys = {
+-- All bindings registered through cmdpicker so they appear in LEADER+Space palette
+cmdpicker.add_keys(config, {
   -- ── Splits ──
-  { key = "|", mods = "LEADER",       action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
-  { key = "-", mods = "LEADER",       action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }) },
-  { key = "x", mods = "LEADER",       action = wezterm.action.CloseCurrentPane({ confirm = false }) },
+  { key = "|", mods = "LEADER", action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }), desc = "Split pane right" },
+  { key = "-", mods = "LEADER", action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }),   desc = "Split pane down" },
+  { key = "x", mods = "LEADER", action = wezterm.action.CloseCurrentPane({ confirm = false }),             desc = "Close pane" },
 
   -- ── Pane navigation — CTRL+hjkl (seamless with Neovim splits) ──
-  smart_nav("h"),
-  smart_nav("j"),
-  smart_nav("k"),
-  smart_nav("l"),
+  { key = "h", mods = "CTRL", action = smart_nav_action("h"), desc = "Navigate pane/split left" },
+  { key = "j", mods = "CTRL", action = smart_nav_action("j"), desc = "Navigate pane/split down" },
+  { key = "k", mods = "CTRL", action = smart_nav_action("k"), desc = "Navigate pane/split up" },
+  { key = "l", mods = "CTRL", action = smart_nav_action("l"), desc = "Navigate pane/split right" },
 
   -- ── Pane resize (LEADER + arrow keys) ──
-  { key = "LeftArrow",  mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Left", 5 }) },
-  { key = "DownArrow",  mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Down", 5 }) },
-  { key = "UpArrow",    mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Up", 5 }) },
-  { key = "RightArrow", mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Right", 5 }) },
+  { key = "LeftArrow",  mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Left",  5 }), desc = "Resize pane left" },
+  { key = "DownArrow",  mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Down",  5 }), desc = "Resize pane down" },
+  { key = "UpArrow",    mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Up",    5 }), desc = "Resize pane up" },
+  { key = "RightArrow", mods = "LEADER", action = wezterm.action.AdjustPaneSize({ "Right", 5 }), desc = "Resize pane right" },
 
   -- ── Tabs ──
-  { key = "c", mods = "LEADER",       action = wezterm.action.SpawnTab("CurrentPaneDomain") },
-  { key = "n", mods = "LEADER",       action = wezterm.action.ActivateTabRelative(1) },
-  { key = "p", mods = "LEADER",       action = wezterm.action.ActivateTabRelative(-1) },
-  { key = "w", mods = "LEADER",       action = wezterm.action.ShowTabNavigator },
-  { key = "q", mods = "LEADER",       action = wezterm.action.CloseCurrentTab({ confirm = false }) },
+  { key = "c", mods = "LEADER", action = wezterm.action.SpawnTab("CurrentPaneDomain"),      desc = "New tab" },
+  { key = "n", mods = "LEADER", action = wezterm.action.ActivateTabRelative(1),             desc = "Next tab" },
+  { key = "p", mods = "LEADER", action = wezterm.action.ActivateTabRelative(-1),            desc = "Previous tab" },
+  { key = "w", mods = "LEADER", action = wezterm.action.ShowTabNavigator,                   desc = "Tab navigator" },
+  { key = "q", mods = "LEADER", action = wezterm.action.CloseCurrentTab({ confirm = false }), desc = "Close tab" },
+
+  -- ── New line (PSReadLine multi-line input) ──
+  { key = "Enter", mods = "SHIFT", action = wezterm.action.SendString("\n"), desc = "Insert newline (multi-line input)" },
 
   -- ── Copy / Paste ──
-  { key = "c", mods = "CTRL|SHIFT",   action = wezterm.action.CopyTo("Clipboard") },
-  { key = "v", mods = "CTRL|SHIFT",   action = wezterm.action.PasteFrom("Clipboard") },
+  { key = "c", mods = "CTRL|SHIFT", action = wezterm.action.CopyTo("Clipboard"),    desc = "Copy to clipboard" },
+  { key = "v", mods = "CTRL|SHIFT", action = wezterm.action.PasteFrom("Clipboard"), desc = "Paste from clipboard" },
 
   -- ── Search ──
-  { key = "f", mods = "CTRL|SHIFT",   action = wezterm.action.Search({ CaseInSensitiveString = "" }) },
+  { key = "f", mods = "CTRL|SHIFT", action = wezterm.action.Search({ CaseInSensitiveString = "" }), desc = "Search in pane" },
 
   -- ── Zoom active pane ──
-  { key = "z", mods = "LEADER",       action = wezterm.action.TogglePaneZoomState },
+  { key = "z", mods = "LEADER", action = wezterm.action.TogglePaneZoomState, desc = "Zoom/unzoom pane" },
 
   -- ── Rename tab ──
   {
@@ -97,13 +102,27 @@ config.keys = {
         if line then window:active_tab():set_title(line) end
       end),
     }),
+    desc = "Rename tab",
   },
-}
+
+  -- ── Palettes ──
+  { key = "P", mods = "CTRL|SHIFT", action = wezterm.action.ActivateCommandPalette, desc = "WezTerm built-in command palette" },
+})
 
 -- ─── Mouse ───────────────────────────────────────────────────────────────────
 config.mouse_bindings = {
   { event = { Up = { streak = 1, button = "Left" } }, mods = "CTRL",
     action = wezterm.action.OpenLinkAtMouseCursor },
 }
+
+-- ─── Command Palette trigger — must be called last ───────────────────────────
+cmdpicker.apply_to_config(config, {
+  key              = " ",
+  mods             = "LEADER",
+  title            = "Command Palette",
+  fuzzy            = true,
+  fuzzy_description = "Search: ",
+  include_defaults = false,
+})
 
 return config
